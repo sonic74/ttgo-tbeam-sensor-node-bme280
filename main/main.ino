@@ -24,7 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "configuration.h"
 #include <rom/rtc.h>
 
-uint8_t txBuffer[6];
+uint8_t txBuffer[8];
 
 // Message counter, stored in RTC memory, survives deep sleep
 RTC_DATA_ATTR uint32_t count = 0;
@@ -37,12 +37,8 @@ void send() {
     buildBMEPacket(txBuffer);
 
     Serial.print("Payload: ");
-    Serial.print(txBuffer[0], HEX);
-    Serial.print(txBuffer[1], HEX);
-    Serial.print(txBuffer[2], HEX);
-    Serial.print(txBuffer[3], HEX);
-    Serial.print(txBuffer[4], HEX);
-    Serial.print(txBuffer[5], HEX);
+    for(int i=0; i<sizeof(txBuffer); i++) Serial.print(txBuffer[i], HEX);
+    Serial.println();
 
     #if LORAWAN_CONFIRMED_EVERY > 0
         bool confirmed = (count % LORAWAN_CONFIRMED_EVERY == 0);

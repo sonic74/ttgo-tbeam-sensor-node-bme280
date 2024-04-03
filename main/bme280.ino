@@ -22,7 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <Wire.h>
 #include <SPI.h>
 #include <Adafruit_Sensor.h>
-#include <Adafruit_BME280.h>
+#include <Adafruit_BME680.h>
 
 uint32_t humidity_bme;
 uint32_t pressure_bme;
@@ -30,31 +30,19 @@ uint32_t temperature_bme;
 
 char bme_char[32]; // used to sprintf for Serial output
 
-#define SEALEVELPRESSURE_HPA (1013.25)
-Adafruit_BME280 bme; // I2C
+Adafruit_BME680 bme(&Wire1); // I2C
 
 void bme_setup() {
+    Wire1.begin(15,4);
     bool status;
     status = bme.begin();
     if (!status) {
-        Serial.println("Could not find a valid BME280 sensor, check wiring!");
+        Serial.println("Could not find a valid BME680 sensor, check wiring!");
         while (1);
     }
 }
 
-float humidity() {
-    return bme.readHumidity();
-}
-
-float pressure() {
-    return bme.readPressure();
-}
-
-float temperature() {
-    return bme.readTemperature();
-}
-
-void buildBMEPacket(uint8_t txBuffer[6])
+void buildBMEPacket(uint8_t txBuffer[8])
 {
   char buffer[40];
 
@@ -71,7 +59,7 @@ void buildBMEPacket(uint8_t txBuffer[6])
   screen_print(buffer);
 
   // adjust for the f2sflt16 range (-1 to 1)
-  humidity = humidity / 100;
+  humidity /= 1e2;
 
   // float -> int
   uint16_t payloadHum = LMIC_f2sflt16(humidity);
@@ -88,7 +76,10 @@ void buildBMEPacket(uint8_t txBuffer[6])
   // Pressure
   //
 
-  float pressure = bme.readPressure();
+  float pressure = bme.readPressure() / 100.0;
+  // ws2500.c
+  float altitude=326;
+  pressure=(pressure + altitude * 0.11) + 0.5;
 
   sprintf(bme_char, "Pressure: %f", pressure);
   Serial.println(bme_char);
@@ -97,7 +88,7 @@ void buildBMEPacket(uint8_t txBuffer[6])
   screen_print(buffer);
 
   // adjust for the f2sflt16 range (-1 to 1)
-  pressure = pressure / 100000;
+  pressure /= 1e5;
 
   // float -> int
   uint16_t payloadPress = LMIC_f2sflt16(pressure);
@@ -123,7 +114,7 @@ void buildBMEPacket(uint8_t txBuffer[6])
   screen_print(buffer);
 
   // adjust for the f2sflt16 range (-1 to 1)
-  temperature = temperature / 100;
+  temperature /= 1e2;
 
   // float -> int
   uint16_t payloadTemp = LMIC_f2sflt16(temperature);
@@ -134,4 +125,30 @@ void buildBMEPacket(uint8_t txBuffer[6])
 
   txBuffer[4] = tempLow;
   txBuffer[5] = tempHigh;
+
+
+  //
+  // Gas
+  //
+
+  float gas = bme.readGas();
+
+  sprintf(bme_char, "Gas: %f", gas);
+  Serial.println(bme_char);
+
+  snprintf(buffer, sizeof(buffer), "Gas: %10.0f\n", gas);
+  screen_print(buffer);
+
+  // adjust for the f2sflt16 range (-1 to 1)
+  gas /= 1e6;
+
+  // float -> int
+  uint16_t payloadGas = LMIC_f2sflt16(gas);
+
+  // int -> bytes
+  byte gasLow = lowByte(payloadGas);
+  byte gasHigh = highByte(payloadGas);
+
+  txBuffer[6] = gasLow;
+  txBuffer[7] = gasHigh;
 }

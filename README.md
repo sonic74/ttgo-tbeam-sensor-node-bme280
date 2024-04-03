@@ -1,8 +1,8 @@
-## BME280 Sensor Node for The Things Network
+## BME680 Sensor Node for The Things Network
 
 ### For the TTGO T-Beam development platform
 
-### Proof-of-concept for using the T-BEAM to acquire measurements from the BME280 sensor and transmitting humidity, temperature, and pressure to The Things Network
+### Proof-of-concept for using the T-BEAM to acquire measurements from the BME680 sensor and transmitting humidity, temperature, pressure and VOCs to The Things Network
 
 #### Based on the code from [xoseperez/ttgo-beam-tracker](https://github.com/xoseperez/ttgo-beam-tracker), with excerpts from [dermatthias/Lora-TTNMapper-T-Beam](https://github.com/dermatthias/Lora-TTNMapper-T-Beam) to fix an issue with incorrect GPS data. I also added support for the US 915 MHz frequency.
 
@@ -20,12 +20,19 @@ Follow the directions at [espressif/arduino-esp32](https://github.com/espressif/
  - [mcci-catena/arduino-lmic](https://github.com/mcci-catena/arduino-lmic)
  - [mikalhart/TinyGPSPlus](https://github.com/mikalhart/TinyGPSPlus)
  - [ThingPulse/esp8266-oled-ssd1306](https://github.com/ThingPulse/esp8266-oled-ssd1306)
- - [adafruit/Adafruit_BME280_Library](https://github.com/adafruit/Adafruit_BME280_Library)
+ - [adafruit/Adafruit_BME680_Library](https://github.com/adafruit/Adafruit_BME680_Library)
  - [adafruit/Adafruit_Sensor](https://github.com/adafruit/Adafruit_Sensor)
 
 #### TTN Decoder
 
 ```C
+function decodeUplink(input) {
+  var bytes=input.bytes;
+  return {
+    data: Decoder(bytes)
+  };
+}
+
 function Decoder(bytes, port) {
     // Decode an uplink message from a buffer
     // (array) of bytes to an object of fields.
@@ -33,13 +40,16 @@ function Decoder(bytes, port) {
 
     // Humidity
     var rawHum = bytes[0] + bytes[1] * 256;
-    decoded.humidity = sflt162f(rawHum) * 100;
+    decoded.humidity = sflt162f(rawHum) * 1e2;
     // Pressure
     var rawPress = bytes[2] + bytes[3] * 256;
-    decoded.pressure = sflt162f(rawPress) * 100000;
+    decoded.pressure = sflt162f(rawPress) * 1e5;
     // Temperature
     var rawTemp = bytes[4] + bytes[5] * 256;
-    decoded.temperature = sflt162f(rawTemp) * 100;
+    decoded.temperature = sflt162f(rawTemp) * 1e2;
+    // Gas
+    var rawGas = bytes[6] + bytes[7] * 256;
+    decoded.gas = sflt162f(rawGas) * 1e6;
     // Dew point
     decoded.dewpoint = calculateDP(decoded.temperature, decoded.humidity);
     // Vapor Pressure Deficit
@@ -75,9 +85,9 @@ function sflt162f(rawSflt16) {
     // bit 15 is the sign bit
     // bits 14..11 are the exponent
     // bits 10..0 are the the mantissa. Unlike IEEE format,
-    // 	the msb is transmitted; this means that numbers
-    //	might not be normalized, but makes coding for
-    //	underflow easier.
+    //  the msb is transmitted; this means that numbers
+    //  might not be normalized, but makes coding for
+    //  underflow easier.
     // As with IEEE format, negative zero is possible, so
     // we special-case that in hopes that JavaScript will
     // also cooperate.
@@ -108,15 +118,27 @@ function sflt162f(rawSflt16) {
     return sSign * mant1 * Math.pow(2, exp1 - 15);
 }
 
+
+function normalizeUplink(input) {
+  return {
+    data: {
+      air: {
+        temperature: input.data.temperature,
+        relativeHumidity: input.data.humidity,
+        pressure: input.data.pressure
+      }
+    }
+  };
+}
 ```
 
 #### Wiring
 
-The following description uses the T-BEAM pin diagram, below. The labeleing of the I2C pins of the BME280 may be confusing to some, therefore I've explained the connections.
+The following description uses the T-BEAM pin diagram, below. The labeleing of the I2C pins of the BME680 may be confusing to some, therefore I've explained the connections.
 
-### BME280
+### BME680
 
-The BME280 can be powered by either the 5-volt pin or the 3.3-volt pin on the T-BEAM. If powering with 5 volts, connect the T-BEAM pin labeled "5V" to the "VIN" (or similar) of the BME280. If powering with 3.3 volts, connect the T-BEAM pin labeled "3.3" with the "3Vo" (or similar) pin of the BME280. Connect the T-BEAM pin labeled "GND" to the "GND" pin of the BME280. Pins 21 and 22 of the T-BEAM are the I2C SCL and SDA, respectively. The "SCL" pin of the T-BEAM must be connected to the "SCK" pin of the BME280, and the "SDA" pin of the T-BEAM connected to the "SDI" pin of the BME280.
+The BME680 can be powered by either the 5-volt pin or the 3.3-volt pin on the T-BEAM. If powering with 5 volts, connect the T-BEAM pin labeled "5V" to the "VIN" (or similar) of the BME680. If powering with 3.3 volts, connect the T-BEAM pin labeled "3.3" with the "3Vo" (or similar) pin of the BME680. Connect the T-BEAM pin labeled "GND" to the "GND" pin of the BME680. Pins 21 and 22 of the T-BEAM are the I2C SCL and SDA, respectively. The "SCL" pin of the T-BEAM must be connected to the "SCK" pin of the BME680, and the "SDA" pin of the T-BEAM connected to the "SDI" pin of the BME680.
 
 ### OLED Display
 

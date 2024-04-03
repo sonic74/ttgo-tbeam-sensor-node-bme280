@@ -102,8 +102,8 @@ void screen_setup() {
 }
 
 void screen_loop() {
-    display->clear();
-    _screen_header();
-    display->drawLogBuffer(0, SCREEN_HEADER_HEIGHT);
+    //display->clear();
+    //_screen_header();
+    //display->drawLogBuffer(0, SCREEN_HEADER_HEIGHT);
     display->display();
 }
