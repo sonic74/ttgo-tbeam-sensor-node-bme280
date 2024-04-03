@@ -138,7 +138,7 @@ The following description uses the T-BEAM pin diagram, below. The labeleing of t
 
 ### BME680
 
-The BME680 can be powered by either the 5-volt pin or the 3.3-volt pin on the T-BEAM. If powering with 5 volts, connect the T-BEAM pin labeled "5V" to the "VIN" (or similar) of the BME680. If powering with 3.3 volts, connect the T-BEAM pin labeled "3.3" with the "3Vo" (or similar) pin of the BME680. Connect the T-BEAM pin labeled "GND" to the "GND" pin of the BME680. Pins 21 and 22 of the T-BEAM are the I2C SCL and SDA, respectively. The "SCL" pin of the T-BEAM must be connected to the "SCK" pin of the BME680, and the "SDA" pin of the T-BEAM connected to the "SDI" pin of the BME680.
+The BME680 can be powered by either the 5-volt pin or the 3.3-volt pin on the T-BEAM. If powering with 5 volts, connect the T-BEAM pin labeled "5V" to the "VIN" (or similar) of the BME680. If powering with 3.3 volts, connect the T-BEAM pin labeled "3.3" with the "3Vo" (or similar) pin of the BME680. Connect the T-BEAM pin labeled "GND" to the "GND" pin of the BME680.
 
 ### OLED Display
 
